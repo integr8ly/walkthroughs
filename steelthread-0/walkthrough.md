@@ -370,6 +370,14 @@ Save your changes.
 - Open the git menu and click commit. Type in a commit message into the message window. 
 - Select push commited changes to option and ensure it is pointing to ```origin/master``` then click commit
 
+- IF you forked the repo then you will need to trigger a new build
+
+```
+oc start-build nodejs-messaging-work-queue-frontend
+
+```
+Wait for the build to complete before moving on
+
 # Invoke the integration
 
 - Open the front end messaging webapp URL.
