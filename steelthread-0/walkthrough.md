@@ -219,16 +219,30 @@ Name the integration ```steel thread```
 
 # Setup CHE to enable editing of the booster
 
-#TODO DAVE MARTIN
+## Self Signed Certs setup
+
+If using a self signed (non CA) certificate on the Che route, there are a few things that need to be done before a Workspace can be created and used.
+
+* Import the cert into Che Server (this is done autmatically by the ansible installer)
+* Create a custom stack with the self signed certificate included. This is required so that stack instances (workspaces) can make requests back to the Che server.
+* Import the self signed certificate into your browser. This is required so that a websocket connection back to the Che Server can be established, which is required by many parts of the Che Browser IDE.
+
+Docs for how to do items 2 & 3 are available at https://www.eclipse.org/che/docs/openshift-config.html.
+
+## Authorize Che against your Github Account
+
+Go to Profile > Preferences > SSH > VCS, and click the Github icon.
+This will trigger an OAuth flow in your browser and prompt you to login to Github and authorize Che.
 
 # Customise the messaging booster
 We want to add some additional information to the message. To do this we will need to change some of the code in the booster you cloned locally earlier. 
 
 - In che, in your workspace, click the workspace menu item and select import project
 - Select github as the target
-- enter the github repo url for the messaging booster (something like git@github.com:<YOUR_GITHUB_ACCOUNT>/nodejs-messaging-work-queue.git)
-- under project configuration select ```nodejs```
-- open the project and change the context of index.html to be
+- Click the 'Load Repos' button to load a list of all your Github repos
+- Choose the new booster repo that was created by Launcher e.g. nodejs-messaging-work-queue
+- Under project configuration select ```nodejs```
+- Open the project and change the context of index.html to be
 
 ```html
 <!DOCTYPE html>
