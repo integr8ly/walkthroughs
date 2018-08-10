@@ -4,8 +4,9 @@ This document will walk you through the following integration flow
 
 - Creating a Enmasse message queue 
 - Creating a connection and integration in fuse ignite linked to the Enmasse message queue
-- creating a connection to a http endpoint that receives messages via fuse integration
 - Creating a http endpoint that can publish a message to the Enmasse queue 
+- creating a connection to a http endpoint that receives messages via fuse integration
+
 
 
 # Prerequisites 
@@ -31,7 +32,84 @@ You should also take the opportunity to login your oc CLI as this user. You can 
 - Collapse the provisioned service and click on the dashboard link which will show on the right hand side of the EnMasse provisioned service. This link will bring you to the EnMasse dashboard. 
 - When asked to login click the OpenShift button and login with the same user that provisioned the service. In an eval environment this will be ```evals@example.com```
 - Create a new address in the EnMasse console named ```work-queue/requests``` choose the ```queue``` option and the pooled plan.
-- Create a second address in the EnMasse console named ```work-queue/worker-updates``` choose the multicast option and the standard plan
+- Create a second address in the EnMasse console named ```work-queue/worker-updates``` choose the ```queue``` option and the standard plan
+
+# Deploy the CRUD REST HTTP booster
+
+This is the HTTP endpoint that will revieve the requests from the Fuse Ignite 
+integreation we create.
+
+
+Login in to the launcher application this will be at ```http://launcher-launcher.<BASE_MASTER_DOMAIN> ``` 
+
+- Click on launch your project
+- Login when prompted using the ```evals@example.com``` user
+- The create application form will show. Choose ```eval``` as the name
+- When prompted to select target environment choose : ```Code Locally, Build and Deploy```
+- click the blue down arrows
+- Under mission select ```Crud```
+- Under runtime select ```Node.js```
+- click the down arrows
+- under ``` Authorize Git Provider``` you will need to authorize launcher to have access to your github account.
+- once authorised, under the repository input change the value to ```crud-app```
+- once the down arrows go blue click them
+- Click setup application.
+- This will create a repo called crud-app in your github account and deploy the CRUD booster to the eval namespace.
+
+You can try out this application by going to the eval namepsace and clicking on the route created for this new application.
+
+
+# Deploy the messaging booster
+**TODO at the moment we do this manually in the future it will be done via launcher**
+
+Fork the following booster https://github.com/ssorj/nodejs-messaging-work-queue
+into your own repo. We need to fork it as we will be adding some code changes later.
+
+Next clone the repo to your local machine
+
+```
+git clone git@github.com:<YOUR_GITHUB_HANDLE>/nodejs-messaging-work-queue.gi
+```
+
+set up the templates in the cluster
+
+```
+cd nodejs-messaging-work-queue
+oc apply -f templates
+```
+Deploy the frontend application
+
+```
+oc new-app --template=nodejs-messaging-work-queue-frontend -p SOURCE_REPOSITORY_URL=https://github.com/<YOUR_GITHUB_ACCOUNT>/nodejs-messaging-work-queue.git
+```
+
+Edit the messaging-service configmap
+
+```
+oc edit cm messaging-service -n eval
+```
+
+Add in the values from the secret from the Enmasse binding secret
+
+Set the following key value pairs
+
+```
+MESSAGING_SERVICE_HOST = <value from messagingHost>
+MESSAGING_SERVICE_PASSWORD = <value from password>
+MESSAGING_SERVICE_USER= <value from username>
+```
+
+Restart the booster services
+
+```
+oc rollout latest nodejs-messaging-work-queue-frontend
+```
+
+In the log of the application you should see something like:
+
+```
+frontend-nodejs-aad7: Connected to AMQP messaging service at messaging.enmasse-eval.svc:5672
+```
 
 # Setup Enmasse connection in Fuse Ignite
 
@@ -54,60 +132,15 @@ open the Fuse Ignite route and login in to the Fuse Ignite console using the eva
 - Click Next / Save
 
 
-# Deploy the messaging booster
 
-clone the following booster git@github.com:ssorj/nodejs-messaging-work-queue.git
-
-```
-git clone git@github.com:ssorj/nodejs-messaging-work-queue.git
-
-```
-
-set up the templates in the cluster
-
-```
-cd nodejs-messaging-work-queue
-oc apply -f templates
-
-```
-Deploy the applications
-
-```
-oc new-app --template=nodejs-messaging-work-queue-frontend
-oc new-app --template=nodejs-messaging-work-queue-worker
-```
-
-Edit the messaging-service configmap
-
-```
-oc edit cm messaging-service -n eval:
-```
-
-Add in the values from the secret from the Enmasse binding secret
-
-Set the following key value pairs
-
-```
-MESSAGING_SERVICE_HOST = <value from messagingHost>
-MESSAGING_SERVICE_PASSWORD = <value from password>
-MESSAGING_SERVICE_USER= <value from username>
-```
-
-Restart the booster services
-
-```
-oc rollout latest nodejs-messaging-work-queue-frontend
-oc rollout latest nodejs-messaging-work-queue-worker
-```
-
-# Setup HTTP connection to the messaging booster in Fuse Ignite
+# Setup HTTP connection to the CRUD REST booster in Fuse Ignite
 - Open the Fuse ignite console and open the connections again. 
 - Click create connection
 - Find the HTTP connection
-- Set the base URL as the url exposed from the messaging front end application
+- Set the base URL as the url exposed from the crud front end application
 - Click validate to ensure Fuse Ignite can reach the endpoint
 - Click next 
-- Give the connection a name (booster)
+- Give the connection a name (crud booster)
 - Click create
 
 # Creating the integration
@@ -117,21 +150,226 @@ oc rollout latest nodejs-messaging-work-queue-worker
 - Click create integration
 - Click on the Enmaase connection
 - Click on the ``` Subscribe for messages ``` option
-- Under Destination Name add ``` work-queue/worker-updates ```
+- Under Destination Name add ``` work-queue/requests ```
 - Choose Queue as the Destination Type
 - Click Next
-- Set the Specify Output Data Type as ``` Type specification not required ``` this is the default by clicking done
-- On the ``` Choose a Finish Connection ``` screen select the messaging booster connection you created
+- Set the Specify Output Data Type as ``` JSON Schema ``` 
+- Add the following schema
+```
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"type": "object",
+	"properties": {
+		"type": {
+			"type": "string"
+		},
+		"stock": {
+			"type": "string"
+		}
+	}
+}
+```
+- On the ``` Choose a Finish Connection ``` screen select the crud booster connection you created
 - Choose ```Invoke URL ``` 
-- In the URL Path set the path to ```/api/data```
-- In the method select ```GET``` and click next
-- Again under Specify Input Data Type leave it as ``` Type specification not required ``` and click done
-- Click publish at the top right
-- Choose the integration name (steel thread)
+- In the URL Path set the path to ```/api/fruits```
+- In the method select ```POST``` and click next
+- Again under Specify Input Data Type set it to ``` JSON Schema ``` 
+- Add the following schema
+```
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"type": "object",
+	"properties": {
+		"name": {
+			"type": "string"
+		},
+		"stock": {
+			"type": "string"
+		}
+	}
+}
 
+```
+Next add click the small plus between the two connections on the left hand side then click ``` add step```
+
+- Pick data mapper from the choices 
+- Map stock to stock by dragging stock from the left to stock on the right
+- Map type to name by dragging type from the left to name on the right
+- Click done at the top right
+
+Add some logging steps (optional)
+
+To add some more visibility we can add some logging steps to our integration.
+
+- On the left hand side inbetween the connections you will see small blue boxes with plus symbols. For each of these do the following:
+
+- click it
+- click add step
+- choose log
+- select ```message body```
+
+Once done we should now have 5 steps in our integration. Click publish in the top right.
+
+Name the integration ```steel thread```
+
+
+# Setup CHE to enable editing of the booster
+
+#TODO DAVE MARTIN
+
+# Customise the messaging booster
+We want to add some additional information to the message. To do this we will need to change some of the code in the booster you cloned locally earlier. 
+
+- In che, in your workspace, click the workspace menu item and select import project
+- Select github as the target
+- enter the github repo url for the messaging booster (something like git@github.com:<YOUR_GITHUB_ACCOUNT>/nodejs-messaging-work-queue.git)
+- under project configuration select ```nodejs```
+- open the project and change the context of index.html to be
+
+```
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Messaging Work Queue</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,300italic,400,400italic,600,600italic|Ubuntu+Mono:400" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="/app.css" type="text/css"/>
+    <link rel="icon" href="" type="image/png"/>
+    <script type="text/javascript" src="/gesso.js"></script>
+    <script type="text/javascript" src="/app.js"></script>
+    <script>
+      "use strict";
+      const app = new Application();
+    </script>
+  </head>
+  <body>
+    <div id="-body">
+      <div id="-body-content">
+        <h1>Messaging Work Queue</h1>
+
+        <h2>Add Fruit</h2>
+
+        <form id="requests" method="post" action="javascript:void(0);">
+          Fruit: <input id="request-text" type="text" name="text" autofocus="autofocus"/>
+          Stock: <input id="request-stock" type="text" name="stock" autofocus="autofocus"/>
+
+          <button>Send request</button>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
+
+
+```
+
+
+Next open ```app.js`` and  replace it with:
+
+```
+ "use strict";
+
+const gesso = new Gesso();
+
+class Application {
+    constructor() {
+        this.data = null;
+
+        window.addEventListener("statechange", (event) => {
+            this.renderResponses();
+            this.renderWorkers();
+        });
+
+        window.addEventListener("load", (event) => {
+            this.fetchDataPeriodically();
+
+            $("#requests").addEventListener("submit", (event) => {
+                this.sendRequest(event.target);
+                this.fetchDataPeriodically();
+            });
+        });
+    }
+
+    fetchDataPeriodically() {
+        gesso.fetchPeriodically("/api/data", (data) => {
+            this.data = data;
+            window.dispatchEvent(new Event("statechange"));
+        });
+    }
+
+    sendRequest(form) {
+        console.log("Sending request");
+
+        let request = gesso.openRequest("POST", "/api/send-request", (event) => {
+            if (event.target.status >= 200 && event.target.status < 300) {
+                this.fetchDataPeriodically();
+            }
+        });
+
+        let data = {
+            text: form.text.value,
+            stock: form.stock.value,
+            uppercase: false,
+            reverse: false,
+        };
+
+        let json = JSON.stringify(data);
+
+        request.setRequestHeader("Content-Type", "application/json");
+        request.send(json);
+
+        form.text.value = "";
+        form.stock.value = "";
+    }
+
+    renderResponses() {
+      
+    }
+
+    renderWorkers() {
+        console.log("Rendering workers");
+
+    }
+}
+
+
+```
+
+Finally open the ```server.js``` and replace the ```/api/send-request``` route with the following
+
+```
+
+app.post("/api/send-request", (req, resp) => {
+    let message = {
+        message_id: `${id}/${request_sequence++}`,
+        application_properties: {
+            uppercase: req.body.uppercase,
+            reverse: req.body.reverse
+        },
+        body: JSON.stringify({type:req.body.text, stock: req.body.stock})
+    };
+
+    request_messages.push(message);
+    request_ids.push(message.message_id);
+
+    send_requests();
+
+    resp.status(202).send(message.message_id);
+});
+
+
+```
+
+Save your changes.
+
+- Open the git menu and click commit. Type in a commit message into the message window. 
+- Select push commited changes to option and ensure it is pointing to ```origin/master``` then click commit
 
 # Invoke the integration
 
-- Open the front end booster webapp URL.
+- Open the front end messaging webapp URL.
 - Send a new message
 - Back in the fuse console, open the integration and open the activity tab
+- You should see the different steps it went through while invoking the integration
+- Next open the route to the CRUD rest app. You should see a new fruit type has been added with a stock quantity.
