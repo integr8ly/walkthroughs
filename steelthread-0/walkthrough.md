@@ -5,7 +5,9 @@ This document will walk you through the following integration flow
 - Creating a Enmasse message queue 
 - Creating a connection and integration in fuse ignite linked to the Enmasse message queue
 - Creating a http endpoint that can publish a message to the Enmasse queue 
-- creating a connection to a http endpoint that receives messages via fuse integration
+- Creating a http endpoint that exposes a REST API using Launcher
+- Creating a connection to REST API from fuse
+- Creating an integration between all of these via Fuse Ignite
 
 
 
@@ -26,9 +28,10 @@ You should also take the opportunity to login your oc CLI as this user. You can 
 
 # Setting up a Enmasse queue in your namespace 
 
+- From your namespace click the catalog button on the left hand nav
 - Provision a Enmasse service from the catalog (choose EnMasse standard) name it eval and choose not to bind at this time.
 - Once complete, in the Eval namespace you will find a EnMasse provisioned service.
-- Create a binding to this provisioned service checking each available option.
+- Now create a binding to this provisioned service checking each available option.
 - Collapse the provisioned service and click on the dashboard link which will show on the right hand side of the EnMasse provisioned service. This link will bring you to the EnMasse dashboard. 
 - When asked to login click the OpenShift button and login with the same user that provisioned the service. In an eval environment this will be ```evals@example.com```
 - Create a new address in the EnMasse console named ```work-queue/requests``` choose the ```queue``` option and the pooled plan.
@@ -37,22 +40,22 @@ You should also take the opportunity to login your oc CLI as this user. You can 
 # Deploy the CRUD REST HTTP booster
 
 This is the HTTP endpoint that will revieve the requests from the Fuse Ignite 
-integreation we create.
+integreation we create and add new fruits to the inventory.
 
 
-Login in to the launcher application this will be at ```http://launcher-launcher.<BASE_MASTER_DOMAIN> ``` 
+Load up the launcher application. This is at ```http://launcher-launcher.<BASE_MASTER_DOMAIN> ``` 
 
 - Click on launch your project
 - Login when prompted using the ```evals@example.com``` user
-- The create application form will show. Choose ```eval``` as the name
+- The create application form will show. Choose ```eval``` as the name (this equates to your namespace)
 - When prompted to select target environment choose : ```Code Locally, Build and Deploy```
-- click the blue down arrows
+- Click the blue down arrows
 - Under mission select ```Crud```
 - Under runtime select ```Node.js```
-- click the down arrows
-- under ``` Authorize Git Provider``` you will need to authorize launcher to have access to your github account.
-- once authorised, under the repository input change the value to ```crud-app```
-- once the down arrows go blue click them
+- Click the down arrows
+- Under ``` Authorize Git Provider``` you will need to authorize launcher to have access to your github account.
+- Once authorised, under the repository input change the value to ```crud-app```
+- Once the down arrows go blue click them
 - Click setup application.
 - This will create a repo called crud-app in your github account and deploy the CRUD booster to the eval namespace.
 
@@ -111,6 +114,8 @@ In the log of the application you should see something like:
 frontend-nodejs-aad7: Connected to AMQP messaging service at messaging.enmasse-eval.svc:5672
 ```
 
+This is how we know it has connected to the AMQP service succesfully. 
+
 # Setup Enmasse connection in Fuse Ignite
 
 Back in your ```evals``` project, You will see a binding and a binding secret as part of the Enmaase provisioned service. There is an option to view this secret. Click on view and click on reveal. Take note of the following values
@@ -119,8 +124,8 @@ Back in your ```evals``` project, You will see a binding and a binding secret as
 - username
 - password
 
-open the Fuse Ignite route and login in to the Fuse Ignite console using the evals@example.com user 
-
+- Open the Fuse Ignite route 
+- Login in to the Fuse Ignite console using the evals@example.com user 
 - Select connections and create connection
 - Find the AMQP connection and select it. 
 - Fill in the Connection URI Field with the a URI that is in the following format  ```amqp://<messagingHost>:5672?amqp.saslMechanisms=PLAIN```
@@ -134,18 +139,17 @@ open the Fuse Ignite route and login in to the Fuse Ignite console using the eva
 
 
 # Setup HTTP connection to the CRUD REST booster in Fuse Ignite
-- Open the Fuse ignite console and open the connections again. 
+- Click on connections
 - Click create connection
 - Find the HTTP connection
-- Set the base URL as the url exposed from the crud front end application
+- Set the base URL as the url exposed from the CRUD REST booster application that we created earlier
 - Click validate to ensure Fuse Ignite can reach the endpoint
 - Click next 
 - Give the connection a name (crud booster)
 - Click create
 
 # Creating the integration
-
-- Open the Fuse Ignite console
+- In the Fuse console
 - Click on integrations
 - Click create integration
 - Click on the Enmaase connection
@@ -190,11 +194,11 @@ open the Fuse Ignite route and login in to the Fuse Ignite console using the eva
 }
 
 ```
-Next add click the small plus between the two connections on the left hand side then click ``` add step```
+Next click the small plus between the two connections on the left hand side then click ``` add step```
 
-- Pick data mapper from the choices 
-- Map stock to stock by dragging stock from the left to stock on the right
-- Map type to name by dragging type from the left to name on the right
+- Pick ```data mapper``` from the choices 
+- Map the stock property to the stock property by dragging stock from the left model to the right model
+- Map type to name by dragging type from the left model to name on the right model
 - Click done at the top right
 
 Add some logging steps (optional)
@@ -226,7 +230,7 @@ We want to add some additional information to the message. To do this we will ne
 - under project configuration select ```nodejs```
 - open the project and change the context of index.html to be
 
-```
+```html
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
@@ -267,7 +271,7 @@ We want to add some additional information to the message. To do this we will ne
 
 Next open ```app.js`` and  replace it with:
 
-```
+```js
  "use strict";
 
 const gesso = new Gesso();
@@ -338,7 +342,7 @@ class Application {
 
 Finally open the ```server.js``` and replace the ```/api/send-request``` route with the following
 
-```
+```js
 
 app.post("/api/send-request", (req, resp) => {
     let message = {
