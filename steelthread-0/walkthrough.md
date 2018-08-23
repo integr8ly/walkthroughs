@@ -18,13 +18,8 @@ The installation has already been performed on an OpenShift cluster as per the i
 
 # Login and choose the evals namespace
 
-At the login screen you will see two options:
-
-- htpassword
-- rh_sso
-
-You should pick the rh_sso option. You should then login as the ```evals@example.com``` user and on the right hand side, you should see ```My Projects``` select the ```evals``` project.
-You should also take the opportunity to login your oc CLI as this user. You can do this by clicking the user at the top right of the OpenShift console UI and selecting ```copy login command``` from the drop down. Open a terminal and paste the command in.
+Login to the OpenShift Web Console. You should login as the ```evals@example.com``` user. On the right hand side, you should see ```My Projects```. Select the ```evals``` project.
+You should also take the opportunity to login the `oc` CLI as this user. You can do this by clicking the user at the top right of the OpenShift web console and selecting ```Copy Login Command``` from the drop down. Open a terminal and paste the command in.
 
 # Setting up a Enmasse queue in your namespace 
 
