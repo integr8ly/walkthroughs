@@ -38,7 +38,7 @@ This is the HTTP endpoint that will revieve the requests from the Fuse Ignite
 integreation we create and add new fruits to the inventory.
 
 
-Load up the launcher application. This is at ```https://launcher-launcher.<ROUTER_SUFFIX> ``` 
+Load up the launcher application. This is at ```http://launcher-launcher.<ROUTER_SUFFIX> ``` 
 
 - Click on launch your project
 - Login when prompted using the ```evals@example.com``` user
