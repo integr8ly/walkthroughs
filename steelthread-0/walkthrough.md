@@ -260,7 +260,7 @@ Back in the Che Dashboard, go to the Stacks menu & clone the Node stack
 
 ![Che Clone Stack](./che_stack_clone.png)
 
-Modify the stack to set the Machine image to the public image repository name i.e. `<dockerhubusername>/che-node`
+Modify the stack to set the Machine image to the public image repository name i.e. `docker.io/<dockerhubusername>/che-node`
 
 ![Che Machine Image](./che_stack_machine_image.png)
 
@@ -278,12 +278,12 @@ With the Che setup done, we can create a workspace and modify the booster code.
 The modification will add information to messages as they get sent from the messaging booster. To do this we will need to change some of the code in the messaging booster. 
 
 - Login to the Che Dashboard. The url is in the format ```https://che-che.<ROUTER_SUFFIX>``` 
-- Create a new workspace from the custom Node.js Stack (the stack that has the custom image with self-signed cert included)
-- Once the workspace is launched, click the `Workspace` menu item and select `Import Project`
-- Select `github` as the target
-- Click the `Load Repos` button to load a list of all your Github repos
-- Choose the new booster repo that was created by Launcher e.g. `messaging-frontend`
-- In the project configuration screen select ```Node JS``` and click `Save`
+- Create a new workspace and select the custom Node.js Stack from the list of stacks (the stack that has the custom image with self-signed cert included)
+- Click Add or Import Project button
+- Click the Github tab
+- Select the messaging-frontend booster repo that was created by Launcher and click the Add button
+- Click Create button at the bottom of the screen
+- When prompted, click the Open In IDE button
 - Open the file ```frontend/app.js``` and modify the `message` body to prepend some text to the `type` in the ```/api/send-request``` endpoint e.g.
 
 ```js
