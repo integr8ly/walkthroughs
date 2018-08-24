@@ -1,0 +1,26 @@
+kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "che-stack-node" 
+spec:
+  runPolicy: "Serial" 
+  triggers:
+  - imageChange: {}
+    type: ImageChange
+  source:
+    type: Dockerfile
+    dockerfile: |-
+      FROM eclipse/node
+      ADD ./ca.crt /usr/local/share/ca-certificates/ca.crt
+      RUN sudo chmod 664 /usr/local/share/ca-certificates/ca.crt
+      RUN sudo update-ca-certificates
+      RUN cd ${HOME} && echo yes | keytool -keystore minishift.jks -importcert -alias HOSTDOMAIN -file /usr/local/share/ca-certificates/ca.crt -storepass minishift
+    secrets:
+    - secret:
+        name: openshift-identity-provider
+  strategy:
+    type: Docker
+  output:
+    to:
+      kind: "ImageStreamTag"
+      name: "che-stack-node:latest"
