@@ -43,28 +43,27 @@ Load up the launcher application. This is at ```http://launcher-launcher.<ROUTER
 - Click on launch your project
 - Login when prompted using the ```evals@example.com``` user
 - The create application form will show. Choose ```eval``` as the name (this equates to your namespace)
-- When prompted to select target environment choose : ```Code Locally, Build and Deploy```
-- Click the blue down arrows
+- When prompted to select Target Environment choose : ```Code Locally, Build and Deploy```
+- You will need to `Authorize` Launcher to create resources using your OpenShift account. This will refresh the wizard and prompt you to choose the Target Environment again.
+- As Authorization is now done, you can click the blue down arrows
 - Under mission select ```Crud```
 - Under runtime select ```Spring Boot```
-- Click the down arrows
+- Click the blue down arrows
 - Under ``` Authorize Git Provider``` you will need to authorize launcher to have access to your github account.
 - Once authorised, under the repository input change the value to ```crud-app```
 - Wait for the down arrows to change color to blue, then click them
 - Click setup application.
-- This will create a repo called crud-app in your github account and deploy the CRUD booster to the eval namespace.
+- This will create a repo called crud-app in your github account and deploy the CRUD booster to the `eval` namespace.
 
-You can try out this application by going to the eval namepsace and clicking on the route created for this new application.
+You can try out this application by going to the eval namespace and clicking on the route created for this new application.
 
 
 # Deploy the Messaging booster
 
 This is a webapp that connects to the EnMasse address space. It allows the user to add new fruit to the inventory of the CRUD app via the EnMasse and CRUD app Integration in Fuse.
 
-Load up the launcher application. This is at ```https://launcher-launcher.<ROUTER_SUFFIX> ``` 
-
-- Click on launch your project
-- Choose ```eval``` as the application name again
+- Following on from the previous application setup, click the `Start new project` button
+- Choose ```eval``` as the application name again (This will deploy the Messaging booster to the same project as the CRUD booster)
 - When prompted to select target environment choose : ```Code Locally, Build and Deploy```
 - Click the blue down arrows
 - Under mission select ```Messaging Work Queue```
@@ -74,9 +73,9 @@ Load up the launcher application. This is at ```https://launcher-launcher.<ROUTE
 - Under the repository input change the value to ```messaging-frontend```
 - Wait for the down arrows to change color to blue, then click them
 - Click setup application.
-- This will create a repo called messaging-frontend in your github account and deploy the Messaging booster to the eval namespace.
+- This will create a repo called messaging-frontend in your github account and deploy the Messaging booster to the `eval` namespace.
 
-There a some credentials to set to allow the messaging frontend to connect to the EnMasse address space.
+There are some credentials to set to allow the messaging frontend to connect to the EnMasse address space.
 First, get the `username` and `password` values from the EnMasse binding secret.
 It has a name in the format `enmasse-standard-xxxxx-credentials-yyyyy`
 
@@ -105,7 +104,7 @@ You will need the `username` and `password` credentials again for this section f
 - Open the Fuse Ignite console. You will find the route in the OpenShift Web Console overview screen for the `eval` project.
 - Login in to the Fuse Ignite console using the evals@example.com user 
 - Select `Connections` and `Create connection`
-- Find the `AMQP Message Broker` connector and select it. 
+- Find the **AMQP Message Broker** connector and select it. (Be careful not to choose the **AMQ message broker** which has a similar name)
 - Fill in the Connection URI Field with the following  ```amqp://messaging.enmasse-eval.svc:5672?amqp.saslMechanisms=PLAIN```
 - Fill in the username and password fields with the `username` and `password` values from the EnMasse binding secret.
 - Choose `Disable` for the Check Certificates dropdown
@@ -122,7 +121,7 @@ You will need the `username` and `password` credentials again for this section f
 - Set the base URL as the url exposed from the CRUD REST booster application that we created earlier (You can get this using `oc get route spring-boot-rest-http-crud -n eval`)
 - Click `Validate` to ensure Fuse Ignite can reach the endpoint
 - Click `Next` 
-- Give the connection a name (crud booster)
+- Add a connection name ```crud booster```
 - Click `Create`
 
 # Creating the integration
@@ -135,7 +134,7 @@ You will need the `username` and `password` credentials again for this section f
 - Choose `Queue` as the Destination Type
 - Click `Next`
 - Set the `Select Type` as ```JSON Schema``` 
-- Add the following schema to the `Definition` field & click `Done`
+- Add the following schema to the `Definition`
 ```
 {
 	"$schema": "http://json-schema.org/draft-04/schema#",
@@ -150,10 +149,12 @@ You will need the `username` and `password` credentials again for this section f
 	}
 }
 ```
+- Click `Done`
 - On the ```Choose a Finish Connection``` screen select the `crud booster` connection you created
 - Choose ```Invoke URL``` 
 - In the URL Path set the path to ```/api/fruits```
-- In the method select ```POST``` and click next
+- In the method select ```POST```
+- Click `Next`
 - Again under `Select Type` set it to ```JSON Schema``` 
 - Add the following schema to the `Definition` field & click `Done`
 ```
@@ -190,31 +191,91 @@ To add some more visibility we can add some logging steps to our integration.
 
 Once done we should now have 3 steps (5 if you added logging) in our integration. Click `Publish` in the top right.
 
-Name the integration ```steel thread```
+Name the integration ```steel thread``` and click `Publish` again.
 
 
-# Setup CHE to enable editing of the booster
+# Edit the messaging booster in Che (optional)
 
+If you want to modify any code from the boosters, you'll need to do some setup in Che first.
 The Che Dashboard can be found at ```https://che-che.<ROUTER_SUFFIX>``` 
 
 ## Self Signed Certs setup
 
-If using a self signed (non CA) certificate on the Che route, there are a few things that need to be done before a Workspace can be created and used.
+If using a self signed (non CA) certificate on the Che route, there are a couple of things that need to be done before a Workspace can be created and used.
 
-* Import the cert into Che Server (this is done autmatically by the ansible installer)
 * Create a custom Node.js stack with the self signed certificate included. This is required so that stack instances (workspaces) can make requests back to the Che server.
 * Import the self signed certificate into your browser. This is required so that a websocket connection back to the Che Server can be established, which is required by many parts of the Che Browser IDE.
 
-Docs for how to do items 2 & 3 are available at https://www.eclipse.org/che/docs/openshift-config.html.
+For both these tasks you will need the server certificate.
+This has to be the certificate that the *OpenShift router* uses since OpenShift Web Console may use a different cert or domain. You can export the cert from Chrome as seen below when you visit the Che Dashboard.
 
-## Authorize Che against your Github Account
+![Che Cert Export From Chrome 1](./che_cert_01.png)
 
-Go to Profile > Preferences > SSH > VCS, and click the Github icon.
-This will trigger an OAuth flow in your browser and prompt you to login to Github and authorize Che.
+![Che Cert Export From Chrome 2](./che_cert_02.png)
 
-# Customise the messaging booster (optional)
+When exporting the certificate, save it as `ca.crt`.
 
-We can add some additional information to the message. To do this we will need to change some of the code in the messaging booster. 
+### Create a custom Node.js stack
+
+A Che Stack requires a container image.
+We can build a container image for the Node.js stack, importing the `ca.crt` file.
+To do this, first create a directory and copy the `ca.crt` file into it.
+
+```
+mkdir /tmp/custom_nodejs_stack
+cd /tmp/custom_nodejs_stack
+cp ~/Downloads/ca.crt ./
+```
+
+Create a new file called `Dockerfile` with the below contents
+
+```
+FROM eclipse/node
+ADD ./ca.crt /usr/local/share/ca-certificates/ca.crt
+RUN sudo chmod 664 /usr/local/share/ca-certificates/ca.crt
+RUN sudo update-ca-certificates
+RUN cd ${HOME} && echo yes | keytool -keystore minishift.jks -importcert -alias HOSTDOMAIN -file /usr/local/share/ca-certificates/ca.crt -storepass minishift
+```
+
+Build the container image
+
+```
+docker build -t che/node .
+```
+
+Next, you'll need to push the image to a public registry.
+For this example, a personal account on Docker Hub is used.
+Tag the image with the correct url for your personal Docker Hub account & push it.
+
+```
+docker tag che/node docker.io/<dockerhubusername>/che-node
+docker push docker.io/<dockerhubusername>/che-node
+```
+
+**IMPORTANT:** You will need to make the `che-node` image repository **public** in your Docker Hub account. You can do this from the Docker Hub web console.
+
+![Docker Hub Public Repository](./docker_hub_public_repository.png)
+
+Back in the Che Dashboard, go to the Stacks menu & clone the Node stack
+
+![Che Clone Stack](./che_stack_clone.png)
+
+Modify the stack to set the Machine image to the public image repository name i.e. `<dockerhubusername>/che-node`
+
+![Che Machine Image](./che_stack_machine_image.png)
+
+This stack can then be used to create a Workspace later.
+
+### Import the self signed certificate into your browser
+
+Before you can use a Workspace from your browser, the self-signed certificate needs to be imported. This allows the secure websocket connection to be established when you are in the Che IDE.
+To do this in Chrome, open `chrome://settings/certificates`, then `Authorities > Import`. Choose the ca.crt file and import it.
+You can check if it was imported correctly and is the correct cert when using a Workspace later. There should be no red errors related to `wss://` connections.
+
+## Customise the messaging booster
+
+With the Che setup done, we can create a workspace and modify the booster code.
+The modification will add information to messages as they get sent from the messaging booster. To do this we will need to change some of the code in the messaging booster. 
 
 - Login to the Che Dashboard. The url is in the format ```https://che-che.<ROUTER_SUFFIX>``` 
 - Create a new workspace from the custom Node.js Stack (the stack that has the custom image with self-signed cert included)
