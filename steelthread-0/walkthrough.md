@@ -207,7 +207,21 @@ If using a self signed (non CA) certificate on the Che route, there are a couple
 * Import the self signed certificate into your browser. This is required so that a websocket connection back to the Che Server can be established, which is required by many parts of the Che Browser IDE.
 
 For both these tasks you will need the server certificate.
-This has to be the certificate that the *OpenShift router* uses since OpenShift Web Console may use a different cert or domain. You can export the cert from Chrome as seen below when you visit the Che Dashboard.
+This has to be the certificate that the *OpenShift router* uses since OpenShift Web Console may use a different cert or domain. You can either retrieve the cert from the Openshift master node or export the cert from Chrome when you visit the Che Dashboard.
+
+### Retrieve Certificate from Master node
+
+This option requires ssh access to a master node on the target Openshift cluster where Che is running.
+
+The CA cert can be found under the following path:
+
+``` shell
+[root@master]# /etc/origin/master/ca.crt
+```
+
+Copy the contents of this file and save it locally under `ca.crt`.
+
+### Export Certificate using Google Chrome
 
 ![Che Cert Export From Chrome 1](./che_cert_01.png)
 
@@ -297,11 +311,14 @@ app.post("/api/send-request", (req, resp) => {
 });
 ```
 
-- Save your changes.
-- Open the `Git` menu and click `Commit...`.
+- Save your changes
+- Open the `Profile` dropdown menu in the dashboard and select `Preferences`
+- Under the `Git` option, select `Committer` and specify a `name` and valid Git `email address` in their associated text fields
+- Click the `Save` button and `Close`
+- Open the `Git` menu and click `Commit...`
 - Type in a commit message into the message window e.g. 'Prepend body type`
 - Select the `Push commited changes to` option and ensure it is pointing to ```origin/master``` then click `Commit`
-- A new build of the app will trigger automatically in OpenShift. Wait for the build & redeploy to complete before moving on.
+- A new build of the app will trigger automatically in OpenShift. Wait for the build & redeploy to complete before moving on
 
 # Invoke the integration
 
@@ -309,4 +326,4 @@ app.post("/api/send-request", (req, resp) => {
 - Enter a Fruit name and a stock amount, then click `Send Request`
 - Back in the Fuse console, open the integration and open the activity tab
 - Expand the log entry. You should see the different steps it went through while invoking the integration
-- Next open the route to the CRUD rest app. You should see a new Fruit type has been added with a stock quantity.
+- Next open the route to the CRUD rest app. You should see a new Fruit type has been added with a stock quantity
